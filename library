@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>オーディオライブラリ</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .audio-item { margin: 15px 0; padding: 10px; background: #eee; border-radius: 6px; }
+    .controls { margin-bottom: 20px; }
+    button { margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <h1>オーディオライブラリ</h1>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="検索..." />
+    <button onclick="sortItems('abc')">50音順</button>
+    <button onclick="sortItems('date')">更新順</button>
+    <button onclick="filterCategory('all')">すべて</button>
+    <button onclick="filterCategory('guitar')">Guitar</button>
+    <button onclick="filterCategory('bass')">Bass</button>
+    <button onclick="filterCategory('drum')">Drum</button>
+  </div>
+
+  <div id="audio-list"></div>
+
+  <script>
+    const data = [
+      { title: "gt_loop.wav", url: "https://your-r2-url/gt_loop.wav", updated: "2025-04-30" },
+      { title: "ba_intro.wav", url: "https://your-r2-url/ba_intro.wav", updated: "2025-04-29" },
+      { title: "dr_fill.wav", url: "https://your-r2-url/dr_fill.wav", updated: "2025-04-28" },
+    ];
+
+    let currentIndex = 0;
+
+    function categorize(title) {
+      if (/gt/i.test(title)) return "guitar";
+      if (/ba|bass/i.test(title)) return "bass";
+      if (/dr|drum/i.test(title)) return "drum";
+      return "other";
+    }
+
+    function renderList(filtered = data) {
+      const container = document.getElementById('audio-list');
+      container.innerHTML = '';
+
+      filtered.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'audio-item';
+        div.dataset.category = categorize(item.title);
+        div.innerHTML = `
+          <strong>${item.title}</strong><br>
+          <audio id="audio-${index}" controls preload="auto" src="${item.url}"></audio>
+          <br><span id="next-${index}"></span>
+          <button onclick="repeatAudio(${index})">Repeat</button>
+        `;
+        container.appendChild(div);
+
+        const audio = div.querySelector('audio');
+        audio.addEventListener('ended', () => {
+          const next = data[index + 1];
+          if (next) {
+            document.getElementById(`next-${index}`).textContent = 'next: ' + next.title;
+            document.getElementById(`audio-${index + 1}`)?.play();
+          }
+        });
+      });
+    }
+
+    function sortItems(type) {
+      if (type === 'abc') data.sort((a, b) => a.title.localeCompare(b.title));
+      else if (type === 'date') data.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+      renderList();
+    }
+
+    function filterCategory(category) {
+      if (category === 'all') return renderList(data);
+      renderList(data.filter(d => categorize(d.title) === category));
+    }
+
+    function repeatAudio(index) {
+      const audio = document.getElementById(`audio-${index}`);
+      audio.loop = !audio.loop;
+      audio.play();
+    }
+
+    document.getElementById('search').addEventListener('input', e => {
+      const kw = e.target.value.toLowerCase();
+      const filtered = data.filter(d => d.title.toLowerCase().includes(kw));
+      renderList(filtered);
+    });
+
+    renderList();
+  </script>
+</body>
+</html>
