@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>オーディオアップロード</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #dropzone {
+      width: 100%; padding: 50px; border: 2px dashed #aaa; text-align: center; margin-bottom: 20px;
+    }
+    .hidden { display: none; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>オーディオアップロード</h1>
+  <div id="dropzone">ここにファイルをドロップ</div>
+  <input type="text" id="title" placeholder="タイトル" readonly /><br><br>
+  <button id="uploadBtn">アップロード</button>
+  <p id="message" class="hidden"></p>
+
+  <script>
+    let file;
+
+    const dropzone = document.getElementById('dropzone');
+    const titleInput = document.getElementById('title');
+    const message = document.getElementById('message');
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = 'green';
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.style.borderColor = '#aaa';
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = '#aaa';
+      file = e.dataTransfer.files[0];
+      titleInput.value = file.name;
+    });
+
+    document.getElementById('uploadBtn').addEventListener('click', async () => {
+      if (!file) {
+        message.textContent = 'ファイルを選択してください';
+        message.className = 'error';
+        return;
+      }
+
+      try {
+        // ↓ Cloudflare R2 にアップロードするコード（カスタマイズが必要）
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/upload-endpoint', { // ← R2連携のCloudflare Workerエンドポイント
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          message.textContent = 'アップロードに成功しました';
+          message.className = 'success';
+        } else {
+          const text = await res.text();
+          throw new Error(text);
+        }
+      } catch (err) {
+        message.textContent = 'アップロードに失敗しました：' + err.message;
+        message.className = 'error';
+      }
+      message.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
